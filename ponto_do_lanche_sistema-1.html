@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ponto do Lanche • Sistema</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f3f3;color:#161616}
+header{background:#111;color:white;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.brand{font-size:23px;font-weight:900}.gold{color:#f3c43e}nav button{margin-left:6px}
+button{border:0;border-radius:10px;padding:10px 13px;background:#111;color:white;font-weight:700;cursor:pointer}
+.goldbtn{background:#f3c43e;color:#111}.green{background:#159447}.red{background:#c93636}
+main{max-width:1100px;margin:auto;padding:20px}.hero{background:#f3c43e;padding:25px;border-radius:18px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card,.box{background:#fff;border-radius:15px;padding:15px;box-shadow:0 3px 15px #00000010}
+.card img{width:100%;height:150px;object-fit:cover;border-radius:11px;background:#ddd}.price{font-size:19px;font-weight:900;margin:9px 0}
+.actions{display:flex;gap:7px}.actions button{flex:1}
+input,select,textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:9px;margin:5px 0 10px}
+table{width:100%;border-collapse:collapse;background:white}.box{overflow:auto}td,th{padding:10px;border-bottom:1px solid #eee;text-align:left}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:25px}.modal>div{background:white;max-width:500px;margin:5% auto;padding:20px;border-radius:17px}
+.hidden{display:none}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.notice{padding:12px;background:#fff3cd;border-radius:10px;margin:12px 0}
+@media print{header,nav,.no-print{display:none!important}body{background:white}.print-area{display:block}}
+</style></head>
+<body>
+<header><div class="brand">PONTO <span class="gold">DO LANCHE</span></div><nav>
+<button onclick="show('loja')">🛒 Loja</button><button onclick="login()">⚙️ Painel</button>
+</nav></header>
+<main id="loja">
+<section class="hero"><h1>🍔 Faça seu pedido</h1><p>Escolha seus produtos e finalize pelo WhatsApp.</p></section>
+<div id="lojaProdutos"></div>
+<section class="box no-print" style="margin-top:20px"><h2>🛒 Carrinho</h2><div id="carrinho"></div><h3 id="total"></h3>
+<input id="cliente" placeholder="Seu nome"><textarea id="end" placeholder="Endereço para entrega"></textarea>
+<select id="pag"><option>Pix</option><option>Dinheiro</option><option>Cartão</option></select>
+<textarea id="obs" placeholder="Observações"></textarea><button class="green" style="width:100%" onclick="whatsapp()">📲 Finalizar no WhatsApp</button></section>
+</main>
+<main id="painel" class="hidden">
+<h1>⚙️ Painel administrativo</h1>
+<div class="notice">Os produtos e pedidos ficam salvos neste navegador. Para usar em vários celulares/computadores, o próximo passo é conectar um banco de dados online.</div>
+<div class="tabs"><button onclick="tab('prod')">🍔 Produtos</button><button onclick="tab('ped')">📦 Pedidos</button></div>
+<section id="prod">
+<button class="goldbtn" onclick="novo()">➕ Adicionar produto</button><div id="adminProdutos" class="grid" style="margin-top:15px"></div>
+</section>
+<section id="ped" class="hidden"><div class="box"><h2>Pedidos registrados</h2><div id="pedidos"></div></div></section>
+</main>
+<div class="modal" id="modal"><div><h2 id="mtitle">Produto</h2><input id="pnome" placeholder="Nome do produto"><input id="ppreco" type="number" step=".01" placeholder="Preço"><input id="pcat" placeholder="Categoria (ex.: Hambúrgueres)"><input id="pfoto" placeholder="URL da foto (opcional)"><textarea id="pdesc" placeholder="Descrição"></textarea><button class="goldbtn" onclick="salvar()">Salvar</button> <button onclick="fechar()">Cancelar</button></div></div>
+<script>
+const W="5571999965384";
+let produtos=JSON.parse(localStorage.getItem("pl_produtos")||"null")||[
+{id:1,nome:"Hambúrguer Tradicional",preco:10,cat:"Hambúrgueres",desc:"Delicioso e caprichado",foto:""},
+{id:2,nome:"Hambúrguer Especial",preco:15,cat:"Hambúrgueres",desc:"Especial da casa",foto:""},
+{id:3,nome:"Cachorro-quente Tradicional",preco:5,cat:"Cachorro-quente",desc:"",foto:""},
+{id:4,nome:"Cachorro-quente Especial",preco:10,cat:"Cachorro-quente",desc:"",foto:""},
+{id:5,nome:"Pastel Tradicional",preco:5,cat:"Pastéis",desc:"",foto:""},
+{id:6,nome:"Batata P",preco:8,cat:"Porções",desc:"",foto:""},
+{id:7,nome:"Coca-Cola Lata",preco:5,cat:"Bebidas",desc:"",foto:""}];
+let cart=[],editId=null;
+function save(){localStorage.setItem("pl_produtos",JSON.stringify(produtos))}
+function money(n){return n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+function renderLoja(){let cats=[...new Set(produtos.map(p=>p.cat))];document.getElementById("lojaProdutos").innerHTML=cats.map(c=>`<section><h2>${c}</h2><div class="grid">${produtos.filter(p=>p.cat==c).map(p=>`<div class="card">${p.foto?`<img src="${p.foto}" onerror="this.style.display='none'">`:""}<h3>${p.nome}</h3><small>${p.desc||""}</small><div class="price">${money(p.preco)}</div><button class="goldbtn" onclick="add(${p.id})">Adicionar</button></div>`).join("")}</div></section>`).join("")}
+function add(id){let p=produtos.find(x=>x.id==id);cart.push(p);renderCart()}
+function renderCart(){document.getElementById("carrinho").innerHTML=cart.length?cart.map((p,i)=>`<div>${p.nome} — ${money(p.preco)} <button class="red" onclick="cart.splice(${i},1);renderCart()">×</button></div>`).join(""):"Carrinho vazio.";document.getElementById("total").textContent="Total: "+money(cart.reduce((a,p)=>a+p.preco,0))}
+function whatsapp(){if(!cart.length)return alert("Adicione produtos.");let n=cliente.value.trim(),e=end.value.trim();if(!n||!e)return alert("Informe nome e endereço.");let t="*NOVO PEDIDO — PONTO DO LANCHE*%0A%0A";cart.forEach(p=>t+=`• ${p.nome} — ${money(p.preco)}%0A`);t+=`%0A*TOTAL: ${money(cart.reduce((a,p)=>a+p.preco,0))}*%0ACliente: ${n}%0AEndereço: ${e}%0APagamento: ${pag.value}%0AObs.: ${obs.value||"Nenhuma"}`;localStorage.setItem("pl_pedidos",JSON.stringify([{data:new Date().toLocaleString("pt-BR"),texto:decodeURIComponent(t.replaceAll("%0A","\n"))},...JSON.parse(localStorage.getItem("pl_pedidos")||"[]")]));open("https://wa.me/"+W+"?text="+t,"_blank")}
+function show(x){loja.classList.toggle("hidden",x!="loja");painel.classList.toggle("hidden",x!="painel")}
+function login(){let s=prompt("Senha do painel:");if(s==="1234"){show("painel");renderAdmin();}else alert("Senha incorreta.");}
+function tab(x){prod.classList.toggle("hidden",x!="prod");ped.classList.toggle("hidden",x!="ped");if(x=="ped")renderPedidos()}
+function novo(){editId=null;mtitle.textContent="Adicionar produto";pnome.value=ppreco.value=pcat.value=pfoto.value=pdesc.value="";modal.style.display="block"}
+function editar(id){let p=produtos.find(x=>x.id==id);editId=id;pnome.value=p.nome;ppreco.value=p.preco;pcat.value=p.cat;pfoto.value=p.foto;pdesc.value=p.desc;modal.style.display="block"}
+function salvar(){let p={id:editId||Date.now(),nome:pnome.value.trim(),preco:Number(ppreco.value),cat:pcat.value.trim()||"Outros",foto:pfoto.value.trim(),desc:pdesc.value.trim()};if(!p.nome||!p.preco)return alert("Preencha nome e preço.");if(editId)produtos=produtos.map(x=>x.id==editId?p:x);else produtos.push(p);save();fechar();renderAdmin();renderLoja()}
+function excluir(id){if(confirm("Excluir produto?")){produtos=produtos.filter(p=>p.id!=id);save();renderAdmin();renderLoja()}}
+function fechar(){modal.style.display="none"}
+function renderAdmin(){adminProdutos.innerHTML=produtos.map(p=>`<div class="card"><h3>${p.nome}</h3><b>${money(p.preco)}</b><p>${p.cat}</p><div class="actions"><button onclick="editar(${p.id})">✏️ Editar</button><button class="red" onclick="excluir(${p.id})">Excluir</button></div></div>`).join("")}
+function renderPedidos(){let a=JSON.parse(localStorage.getItem("pl_pedidos")||"[]");pedidos.innerHTML=a.length?a.map((x,i)=>`<div class="box" style="margin:10px 0"><small>${x.data}</small><pre style="white-space:pre-wrap">${x.texto}</pre><button onclick="imprimir(${i})">🖨️ Imprimir</button></div>`).join(""):"Nenhum pedido ainda."}
+function imprimir(i){let a=JSON.parse(localStorage.getItem("pl_pedidos")||"[]"),w=open("","_blank");w.document.write("<pre style='font:16px monospace;white-space:pre-wrap;width:280px'>"+a[i].texto.replaceAll("<","&lt;")+"</pre>");w.print()}
+renderLoja();renderCart();
+</script></body></html>
